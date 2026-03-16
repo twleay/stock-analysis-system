@@ -1,4 +1,7 @@
 <configuration>
+
+    <!-- ================= Appenders ================= -->
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
@@ -16,8 +19,30 @@
         </encoder>
     </appender>
 
+    <!-- ================= Noise Control ================= -->
+
+    <!-- Kafka 客户端整体降噪（最关键） -->
+    <logger name="org.apache.kafka" level="WARN"/>
+
+    <!-- Kafka 网络层、协调器、心跳 -->
+    <logger name="org.apache.kafka.clients" level="WARN"/>
+    <logger name="org.apache.kafka.clients.consumer" level="WARN"/>
+    <logger name="org.apache.kafka.clients.NetworkClient" level="WARN"/>
+    <logger name="org.apache.kafka.clients.consumer.internals" level="WARN"/>
+
+    <!-- Akka Kafka（Alpakka Kafka） -->
+    <logger name="akka.kafka" level="INFO"/>
+    <logger name="akka.kafka.internal" level="WARN"/>
+
+    <!-- Akka 本身（Actor 生命周期、调度） -->
+    <logger name="akka" level="INFO"/>
+
+    <!-- ================= Root ================= -->
+
+    <!-- 你的业务代码仍然能看到 INFO / WARN / ERROR -->
     <root level="INFO">
-        <appender-ref ref="STDOUT" />
-        <appender-ref ref="FILE" />
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
     </root>
+
 </configuration>

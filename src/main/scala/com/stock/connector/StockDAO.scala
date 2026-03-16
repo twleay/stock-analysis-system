@@ -6,6 +6,7 @@ import java.time.LocalDate
 import scala.util.{Try, Using}
 import scala.collection.mutable.ListBuffer
 
+
 /**
  * 股票数据访问对象 - 使用纯JDBC实现
  */
@@ -424,6 +425,108 @@ object StockDAO {
         e.printStackTrace()
         false
     }.get
+  }
+
+  import java.sql.{PreparedStatement, Statement, Timestamp}
+
+  import java.sql.{Connection, DriverManager, Statement, Timestamp}
+  import scala.util.Using
+
+  def insertAnomalyRecord(anomaly: AnomalyRecord): Long = {
+    Using.resource(getConnection) { conn =>
+      val sql =
+        """
+          |INSERT INTO anomaly_record
+          |(stock_code, anomaly_type, anomaly_time, severity, description, indicators)
+          |VALUES (?, ?, ?, ?, ?, ?)
+        """.stripMargin
+
+      val stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
+
+      stmt.setString(1, anomaly.stockCode)
+      stmt.setString(2, anomaly.anomalyType)
+      stmt.setTimestamp(3, Timestamp.valueOf(anomaly.anomalyTime))
+      stmt.setString(4, anomaly.severity)
+      stmt.setString(5, anomaly.description.orNull)
+      stmt.setString(6, anomaly.indicators.orNull)
+
+      stmt.executeUpdate()
+
+      val rs = stmt.getGeneratedKeys
+      if (rs.next()) rs.getLong(1) else 0L
+    }
+  }
+  def getTechnicalIndicatorsRange(stockCode: String, startDate: LocalDate, endDate: LocalDate): List[TechnicalIndicators] = {
+    Using.resource(getConnection) { conn =>
+      val sql = """
+      SELECT stock_code, trade_date, macd, macd_signal, macd_hist, kdj_k, kdj_d, kdj_j,
+             rsi_6, rsi_12, rsi_24, ma5, ma10, ma20, ma60
+      FROM technical_indicators
+      WHERE stock_code = ? AND trade_date >= ? AND trade_date <= ?
+      ORDER BY trade_date ASC
+    """
+      val stmt = conn.prepareStatement(sql)
+      stmt.setString(1, stockCode)
+      stmt.setDate(2, Date.valueOf(startDate))
+      stmt.setDate(3, Date.valueOf(endDate))
+      val rs = stmt.executeQuery()
+
+      def getDoubleOption(col: String): Option[Double] = {
+        val value = rs.getDouble(col)
+        if (rs.wasNull()) None else Some(value)
+      }
+
+      val result = scala.collection.mutable.ListBuffer[TechnicalIndicators]()
+      while (rs.next()) {
+        result += TechnicalIndicators(
+          stockCode = rs.getString("stock_code"),
+          tradeDate = rs.getDate("trade_date").toLocalDate,
+          macd = getDoubleOption("macd"),
+          macdSignal = getDoubleOption("macd_signal"),
+          macdHist = getDoubleOption("macd_hist"),
+          kdjK = getDoubleOption("kdj_k"),
+          kdjD = getDoubleOption("kdj_d"),
+          kdjJ = getDoubleOption("kdj_j"),
+          rsi6 = getDoubleOption("rsi_6"),
+          rsi12 = getDoubleOption("rsi_12"),
+          rsi24 = getDoubleOption("rsi_24"),
+          ma5 = getDoubleOption("ma5"),
+          ma10 = getDoubleOption("ma10"),
+          ma20 = getDoubleOption("ma20"),
+          ma60 = getDoubleOption("ma60")
+        )
+      }
+      result.toList
+    }
+  }
+  def getAnomalyRecords(stockCode: String, limit: Int = 100): List[AnomalyRecord] = {
+    Using.resource(getConnection) { conn =>
+      val sql = """
+      SELECT id, stock_code, anomaly_type, anomaly_time, severity, description, indicators
+      FROM anomaly_records
+      WHERE stock_code = ?
+      ORDER BY anomaly_time DESC
+      LIMIT ?
+    """
+      val stmt = conn.prepareStatement(sql)
+      stmt.setString(1, stockCode)
+      stmt.setInt(2, limit)
+      val rs = stmt.executeQuery()
+
+      val result = scala.collection.mutable.ListBuffer[AnomalyRecord]()
+      while (rs.next()) {
+        result += AnomalyRecord(
+          id = Some(rs.getLong("id")),
+          stockCode = rs.getString("stock_code"),
+          anomalyType = rs.getString("anomaly_type"),
+          anomalyTime = rs.getTimestamp("anomaly_time").toLocalDateTime,
+          severity = rs.getString("severity"),
+          description = Option(rs.getString("description")),
+          indicators = Option(rs.getString("indicators"))
+        )
+      }
+      result.toList
+    }
   }
 
 }
