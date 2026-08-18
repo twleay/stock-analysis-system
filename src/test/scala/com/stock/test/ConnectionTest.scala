@@ -16,7 +16,7 @@ object ConnectionTest extends App {
 
   println("=" * 60)
   println("开始测试连接到虚拟机服务...")
-  println("虚拟机IP: 192.168.202.130")
+  println("虚拟机IP: localhost")
   println("=" * 60)
 
   // 测试Redis连接

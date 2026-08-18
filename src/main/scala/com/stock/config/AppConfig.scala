@@ -13,7 +13,7 @@ object AppConfig {
 
   // Kafka配置
   object Kafka {
-    val bootstrapServers: String = getStringOrDefault("stock.kafka.bootstrap-servers", "192.168.202.130:9092")
+    val bootstrapServers: String = getStringOrDefault("stock.kafka.bootstrap-servers", "localhost:9092")
     val topic: String = getStringOrDefault("stock.kafka.topic", "stock-realtime")
     val groupId: String = getStringOrDefault("stock.kafka.group-id", "stock-consumer-group")
 
@@ -33,9 +33,9 @@ object AppConfig {
 
   // Redis配置
   object Redis {
-    val host: String = getStringOrDefault("stock.redis.host", "192.168.202.130")
+    val host: String = getStringOrDefault("stock.redis.host", "localhost")
     val port: Int = getIntOrDefault("stock.redis.port", 6379)
-    val password: String = getStringOrDefault("stock.redis.password", "123456")
+    val password: String = getStringOrDefault("stock.redis.password", "CHANGE_ME")
     val database: Int = getIntOrDefault("stock.redis.database", 0)
     val timeout: Int = getIntOrDefault("stock.redis.timeout", 5000)
   }
@@ -44,9 +44,9 @@ object AppConfig {
   object MySQL {
     val driver: String = getStringOrDefault("stock.database.driver", "com.mysql.cj.jdbc.Driver")
     val url: String = getStringOrDefault("stock.database.url",
-      "jdbc:mysql://192.168.202.130:3306/stock_analysis?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8")
+      "jdbc:mysql://localhost:3306/stock_analysis?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8")
     val user: String = getStringOrDefault("stock.database.user", "stock_user")
-    val password: String = getStringOrDefault("stock.database.password", "123456")
+    val password: String = getStringOrDefault("stock.database.password", "CHANGE_ME")
     val numThreads: Int = getIntOrDefault("stock.database.numThreads", 10)
     val maxConnections: Int = getIntOrDefault("stock.database.maxConnections", 20)
   }

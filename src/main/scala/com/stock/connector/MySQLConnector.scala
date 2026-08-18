@@ -11,10 +11,10 @@ import scala.util.Try
  */
 object MySQLConnector {
 
-  // 硬编码数据库配置
-  private val DB_URL = "jdbc:mysql://192.168.202.130:3306/stock_analysis?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8"
+  // 数据库配置（默认占位符，真实配置请通过 application.conf 或环境变量覆盖）
+  private val DB_URL = "jdbc:mysql://localhost:3306/stock_analysis?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8"
   private val DB_USER = "stock_user"
-  private val DB_PASSWORD = "123456"
+  private val DB_PASSWORD = "CHANGE_ME"
 
   // 创建数据库连接
   lazy val db: Database = {

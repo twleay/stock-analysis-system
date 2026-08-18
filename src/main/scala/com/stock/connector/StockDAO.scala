@@ -16,9 +16,9 @@ object StockDAO {
   private def getConnection: Connection = {
     Class.forName("com.mysql.cj.jdbc.Driver")
     DriverManager.getConnection(
-      "jdbc:mysql://192.168.202.130:3306/stock_analysis?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8",
+      "jdbc:mysql://localhost:3306/stock_analysis?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8",
       "stock_user",
-      "123456"
+      "CHANGE_ME"
     )
   }
 

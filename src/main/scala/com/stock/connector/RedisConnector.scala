@@ -8,10 +8,10 @@ import scala.util.Try
  */
 object RedisConnector {
 
-  // 根据配置文件，密码应该是123456，不是stock123456
-  private val REDIS_HOST = "192.168.202.130"
+  // 连接配置（请通过 application.conf 或环境变量覆盖）
+  private val REDIS_HOST = "localhost"
   private val REDIS_PORT = 6379
-  private val REDIS_PASSWORD = "123456"  // 这里修改为123456
+  private val REDIS_PASSWORD = "CHANGE_ME"  // 默认占位符，请勿提交真实密码
   private val REDIS_DATABASE = 0
   private val REDIS_TIMEOUT = 5000
 

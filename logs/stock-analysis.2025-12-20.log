@@ -1,2 +1,0 @@
-2025-12-20 20:41:00.300 [stock-consumer-system-akka.actor.default-dispatcher-5] INFO  akka.event.slf4j.Slf4jLogger - Slf4jLogger started
-2025-12-20 20:41:22.859 [stock-consumer-system-akka.actor.default-dispatcher-5] INFO  akka.actor.CoordinatedShutdown - Running CoordinatedShutdown with reason [ActorSystemTerminateReason]

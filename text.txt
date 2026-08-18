@@ -1,0 +1,306 @@
+-- 创建数据库
+CREATE DATABASE stock_analysis DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 创建用户（允许指定网段访问）
+CREATE USER 'stock_user'@'%' IDENTIFIED BY 'CHANGE_ME';
+
+-- 授权
+GRANT ALL PRIVILEGES ON stock_analysis.* TO 'stock_user'@'%';
+FLUSH PRIVILEGES;
+
+-- 验证用户
+SELECT user, host FROM mysql.user WHERE user='stock_user';
+
+-- 切换到stock_analysis数据库
+USE stock_analysis;
+
+-- 创建表结构
+-- 股票基本信息表
+CREATE TABLE stocks (
+    stock_code VARCHAR(10) PRIMARY KEY COMMENT '股票代码',
+    stock_name VARCHAR(50) NOT NULL COMMENT '股票名称',
+    market VARCHAR(10) NOT NULL COMMENT '市场(sh/sz)',
+    sector VARCHAR(50) COMMENT '行业板块',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='股票基本信息表';
+
+-- K线数据表
+CREATE TABLE kline_data (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    stock_code VARCHAR(10) NOT NULL COMMENT '股票代码',
+    trade_date DATE NOT NULL COMMENT '交易日期',
+    open_price DECIMAL(10,3) NOT NULL COMMENT '开盘价',
+    high_price DECIMAL(10,3) NOT NULL COMMENT '最高价',
+    low_price DECIMAL(10,3) NOT NULL COMMENT '最低价',
+    close_price DECIMAL(10,3) NOT NULL COMMENT '收盘价',
+    volume BIGINT NOT NULL COMMENT '成交量',
+    amount DECIMAL(20,2) COMMENT '成交额',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_stock_date (stock_code, trade_date),
+    INDEX idx_stock_code (stock_code),
+    INDEX idx_trade_date (trade_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='K线历史数据表';
+
+-- 技术指标表
+CREATE TABLE technical_indicators (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    stock_code VARCHAR(10) NOT NULL,
+    trade_date DATE NOT NULL,
+    macd DECIMAL(10,4) COMMENT 'MACD值',
+    macd_signal DECIMAL(10,4) COMMENT 'MACD信号线',
+    macd_hist DECIMAL(10,4) COMMENT 'MACD柱状图',
+    kdj_k DECIMAL(10,4) COMMENT 'KDJ-K值',
+    kdj_d DECIMAL(10,4) COMMENT 'KDJ-D值',
+    kdj_j DECIMAL(10,4) COMMENT 'KDJ-J值',
+    rsi_6 DECIMAL(10,4) COMMENT 'RSI(6)',
+    rsi_12 DECIMAL(10,4) COMMENT 'RSI(12)',
+    rsi_24 DECIMAL(10,4) COMMENT 'RSI(24)',
+    ma5 DECIMAL(10,3) COMMENT '5日均线',
+    ma10 DECIMAL(10,3) COMMENT '10日均线',
+    ma20 DECIMAL(10,3) COMMENT '20日均线',
+    ma60 DECIMAL(10,3) COMMENT '60日均线',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_stock_date (stock_code, trade_date),
+    INDEX idx_stock_code (stock_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='技术指标表';
+
+-- 交易策略表
+CREATE TABLE trading_strategies (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    strategy_name VARCHAR(100) NOT NULL COMMENT '策略名称',
+    strategy_type VARCHAR(50) NOT NULL COMMENT '策略类型',
+    description TEXT COMMENT '策略描述',
+    parameters JSON COMMENT '策略参数(JSON格式)',
+    is_active BOOLEAN DEFAULT TRUE COMMENT '是否启用',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='交易策略配置表';
+
+-- 回测结果表
+CREATE TABLE backtest_results (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    strategy_id INT NOT NULL COMMENT '策略ID',
+    stock_code VARCHAR(10) NOT NULL COMMENT '股票代码',
+    start_date DATE NOT NULL COMMENT '回测开始日期',
+    end_date DATE NOT NULL COMMENT '回测结束日期',
+    initial_capital DECIMAL(15,2) NOT NULL COMMENT '初始资金',
+    final_capital DECIMAL(15,2) NOT NULL COMMENT '最终资金',
+    total_return DECIMAL(10,4) NOT NULL COMMENT '总收益率',
+    annual_return DECIMAL(10,4) COMMENT '年化收益率',
+    max_drawdown DECIMAL(10,4) COMMENT '最大回撤',
+    sharpe_ratio DECIMAL(10,4) COMMENT '夏普比率',
+    win_rate DECIMAL(5,2) COMMENT '胜率',
+    total_trades INT COMMENT '总交易次数',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_strategy (strategy_id),
+    INDEX idx_stock (stock_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='回测结果表';
+
+-- 异常交易记录表
+CREATE TABLE anomaly_records (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    stock_code VARCHAR(10) NOT NULL,
+    anomaly_type VARCHAR(50) NOT NULL COMMENT '异常类型',
+    anomaly_time TIMESTAMP NOT NULL COMMENT '异常时间',
+    severity VARCHAR(20) NOT NULL COMMENT '严重程度(low/medium/high)',
+    description TEXT COMMENT '异常描述',
+    indicators JSON COMMENT '相关指标数据',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_stock_time (stock_code, anomaly_time),
+    INDEX idx_type (anomaly_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='异常交易记录表';
+
+-- 插入测试数据
+INSERT INTO stocks (stock_code, stock_name, market, sector) VALUES
+('sh600000', '浦发银行', 'sh', '银行'),
+('sh600036', '招商银行', 'sh', '银行'),
+('sz000001', '平安银行', 'sz', '银行'),
+('sz000002', '万科A', 'sz', '房地产'),
+('sh600519', '贵州茅台', 'sh', '食品饮料');
+
+-- 查看表结构
+SHOW TABLES;
+
+-- 退出
+EXIT;
+
+实时股票交易分析系统(金融+流处理)
+核心功能:
+* 实时采集股票行情数据
+* 技术指标计算(MACD、KDJ等)
+* 异常交易模式检测
+* 交易策略回测引擎
+技术亮点:
+* Akka Streams处理实时数据流
+* Apache Kafka消息队列
+* 复杂事件处理(CEP)
+* 时序数据库(InfluxDB)优化
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     用户界面层                           │
+│          (Web界面 - 由前端开发实现)                     │
+└────────────────────┬────────────────────────────────────┘
+                     │ HTTP/REST API
+┌────────────────────┴────────────────────────────────────┐
+│                  REST API层 (Port 8080)                  │
+│  GET /api/stocks, /realtime, /kline, /indicators...    │
+└────────────┬───────────────────────────┬────────────────┘
+             │                           │
+    ┌────────┴────────┐         ┌───────┴────────┐
+    │   数据查询服务   │         │   Redis缓存    │
+    │   (StockDAO)    │         │  (实时数据)    │
+    └────────┬────────┘         └────────────────┘
+             │
+    ┌────────┴────────┐
+    │  MySQL数据库    │
+    │ (历史数据/指标) │
+    └─────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│                   数据处理层                             │
+│  Kafka Consumer → 指标计算 → 异常检测 → 存储          │
+└────────────────────┬────────────────────────────────────┘
+                     │
+            ┌────────┴────────┐
+            │  Kafka (Topic)  │
+            │  stock-realtime │
+            └────────┬────────┘
+                     │
+┌────────────────────┴────────────────────────────────────┐
+│                   数据采集层                             │
+│  定时调度 → 新浪API → Kafka Producer                   │
+└─────────────────────────────────────────────────────────┘
+第一部分：系统启动“发射”流程 (Startup Sequence)
+这套系统涉及多个组件协作，建议按照**“从基础设施到应用，从下游到上游”**的顺序启动。
+
+0. 基础设施准备 (Infrastructure)
+确保你的环境里这三位“大将”已经运行：
+
+MySQL: 存储历史数据、指标数据。
+
+Redis: 存储最新的实时报价（用于高频查询）。
+
+Apache Kafka: 消息队列，负责数据管道传输。
+
+1. 启动后端 API 服务 (The Bridge)
+这是前端和后端的桥梁，先把路铺好。
+
+运行目标: src/main/scala/com/stock/api/ApiServer.scala
+
+作用: 启动 HTTP 服务器 (Port 8080)，等待前端的查询请求（K线、指标、实时报价）。
+
+标志: 控制台看到 Server online at http://localhost:8080/。
+
+2. 启动数据流处理器 (The Brain)
+先启动消费者，让它准备好处理即将到来的数据。
+
+运行目标: src/main/scala/com/stock/processor/EnhancedConsumerMain.scala
+
+注意: 不要运行旧的 ConsumerMain，要运行这个 Enhanced 版本。
+
+作用: 监听 Kafka 的 stock-realtime 主题 -> 接收数据 -> 读取历史K线 -> 计算 MACD/KDJ -> 存入数据库 -> 异常检测。
+
+补充: 如果是全新部署，记得先运行一次 IndicatorBackfill 把历史指标填满（你刚刚已经做过了）。
+
+3. 启动数据采集器 (The Source)
+最后启动采集器，开始向系统“灌水”。
+
+运行目标: src/main/scala/com/stock/fetcher/FetcherMain.scala
+
+作用: 每隔 5 秒（或你设定的时间）从新浪/东财接口抓取 5 只股票的最新行情，发送给 Kafka。
+
+标志: 控制台开始滚动打印 [Fetcher] 发送数据: sh600519 ...。
+
+4. 启动前端终端 (The Face)
+命令: 在 stock-terminal 目录下运行 npm run dev
+
+作用: 启动 React 界面，连接 8080 端口展示数据。
+
+第二部分：前端终端界面完全解析 (Dashboard Tour)
+这个界面是按照彭博终端 (Bloomberg Terminal) 的风格设计的，每个区块都有特定的金融含义。
+
+1. 左侧导航栏 (Market Watch)
+功能: 你的自选股列表。
+
+细节:
+
+显示股票名称和代码。
+
+实时跳动: 右侧的价格和涨跌幅是实时更新的（红涨绿跌）。
+
+选中高亮: 点击任意一只股票，右侧的大盘和指标会立即切换到该股票的数据。
+
+2. 顶部状态栏 (Real-time Header)
+功能: 当前选中股票的“快照”。
+
+核心元素:
+
+实时连接点: 股票名称下方的小绿点。如果它是绿色呼吸闪烁状态，说明 React Query 正在成功地每 2 秒从后端拉取一次数据，连接健康。
+
+大字报价: 最显眼的数字，让你一眼看到当前价格。
+
+Volume: 右侧显示的成交量，展示市场活跃度。
+
+3. 主图表区 (Technical Analysis Chart)
+功能: 核心 K 线分析。
+
+技术力:
+
+这里展示的是从 kline_data 表拉取的 300+ 条历史数据。
+
+包含 Candlestick (蜡烛图)：展示开盘、收盘、最高、最低。
+
+包含 MA (均线)：MA5 (黄线) 和 MA10 (蓝线)，用于看短期趋势。
+
+底部是 成交量柱状图。
+
+操作技巧: 你可以用鼠标滚轮缩放查看细节，或者拖拽查看历史。
+
+4. 右侧：系统监控面板 (System Monitor)
+功能: 让系统看起来更像是一个“后台监控系统”而非简单的网页。
+
+数据:
+
+API Service: 只要前端能拿到数据，这里显示 ONLINE。
+
+Database: 模拟显示连接池状态。
+
+Stocks/Anomalies: 实时统计当前监控的股票数量和已捕获的异常总数。
+
+5. 右侧：智能异常警报 (Live Alerts / CEP)
+这是你项目的最大亮点 (Akka + CEP 的成果)。
+
+功能: 显示 AnomalyDetector 实时计算出的异常交易模式。
+
+内容:
+
+High Volatility: 价格剧烈波动。
+
+Volume Spike: 突然出现的巨量成交。
+
+Price Jump: 瞬间暴涨/暴跌。
+
+视觉: 列表会自动滚动，新的报警会从上方插入，很有科技感。
+
+6. 底部：动量指标组 (Momentum Indicators)
+功能: 辅助交易决策的三大金刚。
+
+MACD Trend: 趋势指标。最重要的是看 Hist (柱状图)，红色代表多头（涨势），绿色代表空头（跌势）。
+
+KDJ Oscillator: 摆动指标。用于判断短期的超买超卖。
+
+RSI Strength: 相对强弱指标。
+
+进度条: 我写了一个动态进度条。
+
+颜色: 超过 80 变红（超买，危险），低于 20 变绿（超卖，机会），中间是蓝色（中性）。
+
+7. 左下角：视图切换器 (View Switcher)
+功能:
+
+Maximize图标: 进入现在的“单股详情模式”。
+
+Grid图标: 切换到“多股监控墙模式”，你可以看到所有股票的迷你走势图同时跳动
+2168469435

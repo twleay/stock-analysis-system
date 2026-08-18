@@ -4,3 +4,21 @@
 /target/
 /target/scala-2.13/classes/
 /target/scala-2.13/test-classes/
+
+# IDE
+/.idea/
+/.bsp/
+
+# 日志
+/logs/
+*.log
+
+# Node
+node_modules/
+stock-terminal/node_modules/
+stock-terminal/dist/
+
+# 本地敏感文件
+*.env
+.env
+stock-terminal/gg.html
